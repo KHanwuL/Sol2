@@ -82,6 +82,36 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 
 # ==================== 봇 명령어 ==================== #
 
+# /도움
+@bot.tree.command(name="도움", description="Sol2의 모든 명령어 및 설명을 출력합니다.")
+async def help(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    description_text = (
+    "**/그룹장** (부여/제거) {Member}: (서버장 전용)그룹장 역할을 부여합니다.\n"
+    "**/등록** {solvedac_id}: Sol2에 solvedac 아이디를 등록합니다.\n"
+    "**주의** 디스코드 계정 당 하나의 계정만 등록이 가능합니다. **주의**\n"
+    "**/그룹** (생성/삭제) {group_name}: (권한 필요)그룹 관련 명령어를 실행합니다.\n"
+    "**/그룹정보**: (그룹 채널 전용)그룹에 대한 정보를 출력합니다.\n"
+    "**/그룹원** (참가/탈퇴/정보): 그룹원 관련 명령어를 실행합니다.\n"
+    "**/문제집** (생성/삭제) {set_name}: (권한 필요)문제집 관련 명령어를 실행합니다.\n"
+    "**/문제집보기**: 그룹장이 생성한 모든 문제집을 출력합니다.\n"
+    "**/문제집문제** (추가/삭제) {set_name} {problem_id}: (권한 필요)문제집의 문제 관련 명령어를 실행합니다.\n"
+    "**/문제집문제보기** {set_name}: 문제집의 문제들을 출력합니다.\n"
+    "**/문제** {problem_id}: 백준 문제 정보를 출력합니다.\n"
+    "**/푼문제** {solvedac_id}: 푼 문제를 출력합니다.\n"
+    "**/라이벌** (추가/삭제) {rival_id}: 라이벌 관련 명령어를 실행합니다.\n"
+    "**/라이벌목록**: 당신이 설정한 라이벌 목록을 출력합니다.\n"
+    "**/역라이벌목록**: 당신을 라이벌로 설정한 사람들의 목록을 출력합니다.\n"
+    "**/라이벌도전장** {rival_id}: 라이벌이 푼 문제 중 내가 못 푼 문제를 출력합니다.\n"
+    )
+    embed = discord.Embed(
+        title=f"/도움",
+        description=description_text
+    )
+    
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
 def is_guild_owner():
     def predicate(interaction: discord.Interaction) -> bool:
         return interaction.guild is not None and interaction.user.id == interaction.guild.owner_id
