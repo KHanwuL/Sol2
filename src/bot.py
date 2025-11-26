@@ -120,6 +120,12 @@ async def set_group_manager(interaction: discord.Interaction, action: app_comman
         try:
             await target.add_roles(Sol2_Manager)
             await interaction.followup.send(f"{target}에게 역할이 부여되었습니다.")
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "권한 부족: 봇의 역할이 'Sol2_Manager'보다 아래에 있어 역할을 부여할 수 없습니다. "
+                "서버 설정 > 역할에서 봇의 역할을 Sol2_Manager 위로 올려주세요.", 
+                ephemeral=True
+            )
         except Exception as e:
             await interaction.followup.send(f"역할 부여에 실패하였습니다. {e}")
             return
@@ -216,7 +222,8 @@ async def group_command(interaction: discord.Interaction, action: app_commands.C
                 await interaction.followup.send(f"오류: **{group_name}** 그룹 이름은 이미 사용 중입니다.", ephemeral=True)
         
         except Exception as e:
-            await interaction.followup.send(f"그룹 생성 중 오류 발생: {e}", ephemeral=True)
+            await interaction.followup.send(f"그룹 생성 중 오류 발생", ephemeral=True)
+            print(f"/그룹 생성 실패: {e}")
 
     # /그룹 삭제 {group_name}
     elif action.value == "delete":
@@ -224,7 +231,7 @@ async def group_command(interaction: discord.Interaction, action: app_commands.C
 
         if success:
             await interaction.followup.send(
-                f"**{group_name}** 그룹이 삭제되었습니다. (채널은 수동으로 삭제해주세요)", ephemeral=True)
+                f"**{group_name}** 그룹이 삭제되었습니다. (채널은 수동으로 삭제해주세요)")
         else:
             await interaction.followup.send(
                 f"삭제 실패: **{group_name}** 그룹이 없거나, 당신이 그룹장이 아닙니다.", ephemeral=True)
@@ -298,7 +305,8 @@ async def member_command(interaction: discord.Interaction, action: app_commands.
             else:
                 await interaction.followup.send("참가 실패: 이미 그룹에 있거나 오류가 발생했습니다.", ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(f"에러 발생: {e}", ephemeral=True)
+            await interaction.followup.send(f"참가 실패.", ephemeral=True)
+            print(f"/그룹원 참가 오류 {e}")
     
     # /그룹원 탈퇴
     elif action.value == "leave":
@@ -310,11 +318,22 @@ async def member_command(interaction: discord.Interaction, action: app_commands.
 
     # /그룹원 정보
     elif action.value == "info":
-        if db.is_member(solvedac_id, group_id):
-            await interaction.followup.send(f"https://solved.ac/profile/{solvedac_id}", ephemeral=True)
-        else:
-            await interaction.followup.send(f"{solvedac_id}는 {group_name}의 그룹원이 아닙니다.", ephemeral=True)
+        members = db.get_member(group_id)
+        if not members:
+            await interaction.followup.send("해당 그룹에 그룹원이 없습니다.", ephemeral=True)
+            return
+        
+        description_text = ""
+        for member in members:
+            description_text += f"[{member}](https://www.acmicpc.net/problem/{member})\n"
 
+        embed = discord.Embed(
+            title=f"{group_name} 그룹원 목록:",
+            description=description_text
+        )
+    
+        await interaction.followup.send(embed=embed, ephemeral=True)
+        
 
 # ==================== 문제집 관련 봇 명령어 ==================== #
 
@@ -347,18 +366,19 @@ async def problem_set_command(interaction: discord.Interaction, action: app_comm
         try:
             success = db.create_problem_set(group_id, set_name)
             if success:
-                await interaction.followup.send(f"**{set_name}** 문제집이 생성되었습니다.", ephemeral=True)
+                await interaction.followup.send(f"**{set_name}** 문제집이 생성되었습니다.")
             else:
                 await interaction.followup.send(f"문제집 생성 실패: 이미 존재하거나 오류가 발생했습니다.", ephemeral=True)
 
         except Exception as e:
-            await interaction.followup.send(f"문제집 생성 중 오류 발생: {e}", ephemeral=True)
+            await interaction.followup.send(f"문제집 생성 중 오류 발생.", ephemeral=True)
+            print(f"/문제집 생성 오류: {e}")
 
     # /문제집 삭제 {set_name}
     if action.value == "delete":
         success = db.delete_problem_set(group_id, set_name)
         if success:
-            await interaction.followup.send(f"**{set_name}** 문제집이 삭제되었습니다.",ephemeral=True)
+            await interaction.followup.send(f"**{set_name}** 문제집이 삭제되었습니다.")
         else:
             await interaction.followup.send(f"삭제 실패: **{set_name}** 문제집이 존재하지 않습니다.", ephemeral=True)
 
@@ -421,12 +441,12 @@ async def problem_command(interaction: discord.Interaction, action: app_commands
     # /문제집문제 추가 {set_name} {problem_num}
     if action.value == "insert":
         db.add_problem(set_id, problem_id)
-        await interaction.followup.send(f"{set_name}에 {problem_id} 문제를 추가했습니다.", ephemeral=True)
+        await interaction.followup.send(f"{set_name}에 {problem_id} 문제를 추가했습니다.")
 
     # /문제집문제 삭제 {set_name} {problem_num}
     if action.value == "delete":
         db.delete_problem(set_id, problem_id)
-        await interaction.followup.send(f"{set_name}의 {problem_id} 문제를 삭제하였습니다.", ephemeral=True)
+        await interaction.followup.send(f"{set_name}의 {problem_id} 문제를 삭제하였습니다.")
 
 # /문제집문제보기 {set_name}
 @bot.tree.command(name="문제집문제보기", description="문제집의 문제들을 출력합니다.")
@@ -448,7 +468,7 @@ async def get_set_problems(interaction: discord.Interaction, set_name: str):
 
     def get_problem_name(json_data: dict) -> str:
         try:
-            return json_data['items']['titleKo']
+            return json_data.get('titleKo') or json_data.get('title') or "제목없음"
         except Exception:
             return "제목읽기실패"
         
@@ -496,45 +516,17 @@ async def get_solved_problems(interaction: discord.Interaction, solvedac_id: str
         await interaction.followup.send(f"해당 사용자는 아직 문제를 풀지 않았습니다." , ephemeral=True)
         return
     
-    embed = discord.Embed(
-        title="푼 문제 목록:",
-        description=f"{solvedac_id}님이 푼 문제들 목록입니다."
-    )
-    for solved_problem in user_solved_problem_list:
+    description_text = ""
+    for solved_problem in user_solved_problem_list[:50]:
         problem_title = await get_baekjoon_problem_title(solved_problem)
-        embed.add_field(name=f"{problem_title}", value=f"{solved_problem}", inline=False)
+        description_text += f"[{problem_title}](https://www.acmicpc.net/problem/{solved_problem}) - {solved_problem}\n"
 
-    await interaction.followup.send(embed=embed, ephemeral=True)
-
-# /오늘푼문제 {solvedac_id}
-@bot.tree.command(name="오늘푼문제", description="오늘 사용자가 푼 문제를 출력합니다. (top 100 문제를 갱신해야 푼 것으로 처리됩니다.)")
-async def solved_problem_today(interaction: discord.Interaction, solvedac_id: str):
-    await interaction.response.defer(ephemeral=True)
-
-    isUser = db.is_user(solvedac_id)
-    if not isUser:
-        await interaction.followup.send(f"{solvedac_id}는 Sol2 이용자가 아니므로, 불러올 수 없습니다.", ephemeral=True)
-        return
-    
-    updated_top100_list = await get_user_top100_from_api(solvedac_id)
-    if not updated_top100_list:
-        return
-    
-    newly_added_problems = db.update_user_top100(solvedac_id, updated_top100_list)
-    if not newly_added_problems:
-        await interaction.followup.send(f"해당 사용자는 아직 문제를 풀지 않았습니다." , ephemeral=True)
-        return
-    
     embed = discord.Embed(
-        title="푼 문제 목록:",
-        description=f"{solvedac_id}님이 푼 문제들 목록입니다."
+        title="푼 문제 목록(top 50):",
+        description=description_text
     )
-    for solved_problem in newly_added_problems:
-        problem_title = get_baekjoon_problem_title(solved_problem)
-        embed.add_field(name=f"{problem_title} ({solved_problem})", value=f"https://www.acmicpc.net/problem/{solved_problem}", inline=False)
-
+    
     await interaction.followup.send(embed=embed, ephemeral=True)
-
 
 
 
@@ -651,14 +643,16 @@ async def rival_challenge(interaction: discord.Interaction, rival_id: str):
         await interaction.followup.send(f"{rival_id}님이 푼 문제 중 새로운 문제가 없습니다.", ephemeral=True)
         return
 
+    description_text = f"{rival_id}님이 풀었지만 아직 당신이 풀지 않은 문제들입니다.(최대 50문제)\n"
+    for solved_problem in rival_challenge_list[:50]:
+        problem_title = await get_baekjoon_problem_title(solved_problem)
+        description_text += f"[{problem_title}](https://www.acmicpc.net/problem/{solved_problem}) - {solved_problem}\n"
+
     embed = discord.Embed(
         title="라이벌 도전장",
-        description=f"{rival_id}님이 풀었지만 아직 당신이 풀지 않은 문제들입니다."
+        description=description_text  # 필드 대신 설명에 넣음
     )
-    for pid in rival_challenge_list:
-        title = get_baekjoon_problem_title(pid)
-        embed.add_field(name=f"{title} ({pid})", value=f"https://www.acmicpc.net/problem/{pid}", inline=False)
-
+    
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 # ==================== 기타 명령어들 ==================== #

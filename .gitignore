@@ -1,0 +1,5 @@
+.env
+sol2.db
+sol2.db-shm
+sol2.db-wal
+__pycache__/

@@ -180,14 +180,14 @@ def get_group_id(server_id: int|None, channel_id: int|None) -> Optional[int]:
         cursor = con.cursor()
         cursor.execute("SELECT group_id FROM groups WHERE server_id = ? AND channel_id = ?", (server_id, channel_id))
         result = cursor.fetchone()
-        return result['group_id']
+        return result['group_id'] if result else None
     
 def get_group_name(group_id:int) -> Optional[str]:
     with get_db_connection() as con:
         cursor = con.cursor()
         cursor.execute("SELECT group_name FROM groups WHERE group_id = ?", (group_id,))
         result = cursor.fetchone()
-        return result['group_name']
+        return result['group_name'] if result else None
 
 def get_group_manager(group_id: int) -> Optional[int]:
     with get_db_connection() as con:
